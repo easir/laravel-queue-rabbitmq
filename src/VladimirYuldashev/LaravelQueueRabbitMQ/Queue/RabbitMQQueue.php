@@ -28,6 +28,8 @@ class RabbitMQQueue extends Queue implements QueueContract
 	protected $configExchange;
 	protected $sleepOnError;
 
+	protected $declaredQueues = [];
+
 	/**
 	 * @param AMQPConnection $amqpConnection
 	 * @param array          $config
@@ -128,7 +130,7 @@ class RabbitMQQueue extends Queue implements QueueContract
 			if ($message instanceof AMQPMessage) {
 				return new RabbitMQJob($this->container, $this, $this->channel, $queue, $message);
 			}
-		} catch (ErrorException $e) {
+		} catch (\Throwable $e) {
 			$this->reportConnectionError('pop', $e);
 		}
 
@@ -158,6 +160,10 @@ class RabbitMQQueue extends Queue implements QueueContract
 	 */
 	private function declareQueue($name)
 	{
+		if (isset($this->declaredQueues[$name])) {
+			return;
+		}
+
 		$name = $this->getQueueName($name);
 
 		if ($this->declareExchange) {
@@ -184,6 +190,8 @@ class RabbitMQQueue extends Queue implements QueueContract
 			// bind queue to the exchange
 			$this->channel->queue_bind($name, $name, $name);
 		}
+
+		$this->declaredQueues[$name] = true;
 	}
 
 	/**
@@ -234,9 +242,13 @@ class RabbitMQQueue extends Queue implements QueueContract
 	 */
 	private function reportConnectionError($action, Exception $e)
 	{
-		Log::error('AMQP error while attempting ' . $action . ': ' . $e->getMessage());
+		Log::error($e);
 
 		// Sleep so that we don't flood the log file
 		sleep($this->sleepOnError);
+
+		// Attempt reconnection
+		$this->connection->reconnect();
+		$this->channel = $this->getChannel();
 	}
 }
