@@ -28,6 +28,8 @@ class RabbitMQQueue extends Queue implements QueueContract
 	protected $configExchange;
 	protected $sleepOnError;
 
+	protected $declaredQueues = [];
+
 	/**
 	 * @param AMQPConnection $amqpConnection
 	 * @param array          $config
@@ -158,6 +160,10 @@ class RabbitMQQueue extends Queue implements QueueContract
 	 */
 	private function declareQueue($name)
 	{
+		if (isset($this->declaredQueues[$name])) {
+			return;
+		}
+
 		$name = $this->getQueueName($name);
 
 		if ($this->declareExchange) {
@@ -184,6 +190,8 @@ class RabbitMQQueue extends Queue implements QueueContract
 			// bind queue to the exchange
 			$this->channel->queue_bind($name, $name, $name);
 		}
+
+		$this->declaredQueues[$name] = true;
 	}
 
 	/**
@@ -238,5 +246,7 @@ class RabbitMQQueue extends Queue implements QueueContract
 
 		// Sleep so that we don't flood the log file
 		sleep($this->sleepOnError);
+
+		$this->connection->reconnect();
 	}
 }
