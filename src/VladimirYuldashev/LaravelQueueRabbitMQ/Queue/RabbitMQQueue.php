@@ -115,7 +115,7 @@ class RabbitMQQueue extends Queue implements QueueContract
             $this->channel->basic_publish($message, $exchange, $queue);
 
             return $correlationId;
-        } catch (ErrorException $exception) {
+        } catch (\Throwable $exception) {
             $this->reportConnectionError('pushRaw', $exception);
         }
 
@@ -158,7 +158,7 @@ class RabbitMQQueue extends Queue implements QueueContract
             if ($message instanceof AMQPMessage) {
                 return new RabbitMQJob($this->container, $this, $this->channel, $queue, $message);
             }
-        } catch (ErrorException $exception) {
+        } catch (\Throwable $exception) {
             $this->reportConnectionError('pop', $exception);
         }
 
@@ -306,9 +306,14 @@ class RabbitMQQueue extends Queue implements QueueContract
      */
     private function reportConnectionError($action, Exception $e)
     {
-        Log::error('AMQP error while attempting ' . $action . ': ' . $e->getMessage());
+        Log::error($e);
+
         // Sleep so that we don't flood the log file
         sleep($this->sleepOnError);
+
+        // Attempt reconnection
+        $this->connection->reconnect();
+        $this->channel = $this->getChannel();
     }
 
 }
