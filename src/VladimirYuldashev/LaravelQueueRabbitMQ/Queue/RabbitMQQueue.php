@@ -9,7 +9,7 @@ use Log;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use PhpAmqpLib\Channel\AMQPChannel;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Jobs\RabbitMQJob;
@@ -46,10 +46,10 @@ class RabbitMQQueue extends Queue implements QueueContract
     private $correlationId;
 
     /**
-     * @param AMQPStreamConnection $amqpConnection
+     * @param AbstractConnection $amqpConnection
      * @param array $config
      */
-    public function __construct(AMQPStreamConnection $amqpConnection, $config)
+    public function __construct(AbstractConnection $amqpConnection, $config)
     {
         $this->connection = $amqpConnection;
         $this->defaultQueue = $config['queue'];
