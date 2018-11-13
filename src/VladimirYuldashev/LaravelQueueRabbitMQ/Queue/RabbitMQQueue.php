@@ -9,7 +9,7 @@ use Log;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use PhpAmqpLib\Channel\AMQPChannel;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Jobs\RabbitMQJob;
@@ -46,10 +46,10 @@ class RabbitMQQueue extends Queue implements QueueContract
     private $correlationId;
 
     /**
-     * @param AMQPStreamConnection $amqpConnection
+     * @param AbstractConnection $amqpConnection
      * @param array $config
      */
-    public function __construct(AMQPStreamConnection $amqpConnection, $config)
+    public function __construct(AbstractConnection $amqpConnection, $config)
     {
         $this->connection = $amqpConnection;
         $this->defaultQueue = $config['queue'];
@@ -306,7 +306,14 @@ class RabbitMQQueue extends Queue implements QueueContract
      */
     private function reportConnectionError($action, Exception $e)
     {
-        Log::error($e);
+        Log::error('Exception (RabbitMQQueue)', [
+            'exception_context' => ['action' => $action],
+            'exception_name' => get_class($e),
+            'exception_message' => $e->getMessage(),
+            'exception_file' => $e->getFile(),
+            'exception_line' => $e->getLine(),
+            'exception_trace' => $e->getTraceAsString(),
+        ]);
 
         // Sleep so that we don't flood the log file
         sleep($this->sleepOnError);
