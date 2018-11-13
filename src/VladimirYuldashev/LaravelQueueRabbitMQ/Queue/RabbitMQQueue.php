@@ -306,7 +306,14 @@ class RabbitMQQueue extends Queue implements QueueContract
      */
     private function reportConnectionError($action, Exception $e)
     {
-        Log::error($e);
+        Log::error('Exception (RabbitMQQueue)', [
+            'exception_context' => ['action' => $action],
+            'exception_name' => get_class($e),
+            'exception_message' => $e->getMessage(),
+            'exception_file' => $e->getFile(),
+            'exception_line' => $e->getLine(),
+            'exception_trace' => $e->getTraceAsString(),
+        ]);
 
         // Sleep so that we don't flood the log file
         sleep($this->sleepOnError);
